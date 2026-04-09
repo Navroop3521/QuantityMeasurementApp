@@ -12,21 +12,15 @@ public enum LengthUnit {
 
     private final double toFeetFactor;
 
-
     LengthUnit(double toFeetFactor) {
-
         this.toFeetFactor = toFeetFactor;
-
     }
 
     public double toFeet(double value) {
-
         return value * toFeetFactor;
-
     }
+    
     public double fromFeet(double value) {
     	return value/ toFeetFactor;
     }
-
 }
-
