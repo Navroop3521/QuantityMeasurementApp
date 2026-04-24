@@ -1,6 +1,8 @@
 package com.quantity.measurement.model;
 import com.quantity.measurement.enums.LengthUnit;
 
+
+
 public class QuantityLength {
 
 	private static final double EPSILON = 1e-6;
