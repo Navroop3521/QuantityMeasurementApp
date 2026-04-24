@@ -1,29 +1,36 @@
 package com.quantity.measurement.enums;
 
-public enum WeightUnit {
+public enum WeightUnit implements IMeasurable {
 
     KILOGRAM(1.0),
     GRAM(0.001),
-    TON(1000.0),
-    POUND(0.453592);   // ✅ ADD THIS
+    POUND(1.0 / 2.20462);//
+    private final double toKilogramFactor;
 
-    private final double conversionFactor;
-
-    WeightUnit(double conversionFactor) {
-        this.conversionFactor = conversionFactor;
+    WeightUnit(double toKilogramFactor) {
+        this.toKilogramFactor = toKilogramFactor;
     }
 
+    @Override
+    public double getConversionFactor() {
+        return toKilogramFactor;
+    }
+
+    @Override
     public double convertToBaseUnit(double value) {
-        if (!Double.isFinite(value))
-            throw new IllegalArgumentException("Value must be a finite number");
-
-        return value * conversionFactor;
+        validate(value);
+        return value * toKilogramFactor;
     }
 
-    public double convertFromBaseUnit(double valueInBase) {
-        if (!Double.isFinite(valueInBase))
-            throw new IllegalArgumentException("Value must be a finite number");
+    @Override
+    public double convertFromBaseUnit(double value) {
+        validate(value);
+        return value / toKilogramFactor;
+    }
 
-        return valueInBase / conversionFactor;
+    private void validate(double value) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Invalid value");
+        }
     }
 }
