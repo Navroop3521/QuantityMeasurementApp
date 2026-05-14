@@ -29,9 +29,8 @@ public enum LengthUnit implements IMeasurable {
         validate(value);
         return value / toFeetFactor;
     }
-
     private void validate(double value) {
-        if (!Double.isFinite(value)) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
             throw new IllegalArgumentException("Invalid value");
         }
     }
