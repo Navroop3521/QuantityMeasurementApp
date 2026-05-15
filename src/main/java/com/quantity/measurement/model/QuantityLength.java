@@ -1,17 +1,15 @@
 package com.quantity.measurement.model;
 
-import com.quantity.measurement.enums.LengthUnit; // ✅ FIXED
+import com.quantity.measurement.enumImpl.LengthUnit;
 
 public class QuantityLength {
 
     private final Quantity<LengthUnit> quantity;
 
-    // Constructor
     public QuantityLength(double value, LengthUnit unit) {
         this.quantity = new Quantity<>(value, unit);
     }
 
-    // Getters
     public double getValue() {
         return quantity.getValue();
     }
@@ -20,80 +18,35 @@ public class QuantityLength {
         return quantity.getUnit();
     }
 
-    // =========================
-    // ADDITION
-    // =========================
-    public QuantityLength add(QuantityLength other) {
-        if (other == null)
-            throw new NullPointerException("Other cannot be null");
-
-        Quantity<LengthUnit> result = quantity.add(other.quantity);
-        return new QuantityLength(result.getValue(), result.getUnit());
-    }
-
     public QuantityLength add(QuantityLength other, LengthUnit targetUnit) {
-        if (other == null || targetUnit == null)
-            throw new NullPointerException("Arguments cannot be null");
 
-        Quantity<LengthUnit> result = quantity.add(other.quantity, targetUnit);
-        return new QuantityLength(result.getValue(), result.getUnit());
-    }
+        if (other == null || targetUnit == null) {
+            throw new IllegalArgumentException("Other quantity and target unit must not be null");
+        }
 
-    // =========================
-    // SUBTRACTION (UC12)
-    // =========================
-    public QuantityLength subtract(QuantityLength other) {
-        if (other == null)
-            throw new NullPointerException("Other cannot be null");
-
-        Quantity<LengthUnit> result = quantity.subtract(other.quantity);
-        return new QuantityLength(result.getValue(), result.getUnit());
-    }
-
-    public QuantityLength subtract(QuantityLength other, LengthUnit targetUnit) {
-        if (other == null || targetUnit == null)
-            throw new NullPointerException("Arguments cannot be null");
-
-        Quantity<LengthUnit> result =
-                quantity.subtract(other.quantity, targetUnit);
+        Quantity<LengthUnit> result =this.quantity.add(other.quantity, targetUnit);
 
         return new QuantityLength(result.getValue(), result.getUnit());
     }
 
-    // =========================
-    // DIVISION (UC12)
-    // =========================
-    public double divide(QuantityLength other) {
-        if (other == null)
-            throw new NullPointerException("Other cannot be null");
-
-        return quantity.divide(other.quantity);
+    // ADD
+    public QuantityLength add(QuantityLength other) {
+        return add(other, this.getUnit());
     }
 
-    // =========================
-    // CONVERSION
-    // =========================
+    // CONVERT
     public QuantityLength toConvert(LengthUnit targetUnit) {
-        if (targetUnit == null)
-            throw new NullPointerException("Target unit cannot be null");
-
-        Quantity<LengthUnit> result = quantity.toConvert(targetUnit);
+        Quantity<LengthUnit> result =this.quantity.convertTo(targetUnit);
         return new QuantityLength(result.getValue(), result.getUnit());
     }
 
-    // =========================
-    // EQUALITY
-    // =========================
+    // EQUALS
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        QuantityLength that = (QuantityLength) o;
-
-        return this.quantity.equals(that.quantity);
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof QuantityLength)) return false;
+        QuantityLength other = (QuantityLength) obj;
+        return this.quantity.equals(other.quantity);
     }
 
     @Override
