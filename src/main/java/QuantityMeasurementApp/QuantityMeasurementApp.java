@@ -1,34 +1,55 @@
 package QuantityMeasurementApp;
 
-import com.quantity.measurement.enumImpl.LengthUnit;
-import com.quantity.measurement.enumImpl.WeightUnit;
-import com.quantity.measurement.model.Quantity;
+import com.quantity.measurement.controller.Controller;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import com.quantity.measurement.model.QuantityLength;
 
+import com.quantity.measurement.repository.Repository;
+import com.quantity.measurement.repoimpl.DatabaseRepository;
+import com.quantity.measurement.serviceimpl.MeasurementApplication;
+import com.quantity.measurement.serviceimpl.ServiceImpl;
+
+@SpringBootApplication
 public class QuantityMeasurementApp {
 
-    public static void main(String[] args) {
+	private static final Logger LOGGER =
+			LoggerFactory.getLogger(MeasurementApplication.class);
 
-        
-    	  SpringApplication.run(MeasurementApplication.class, args);
+	public static void main(String[] args) {
 
-          // LENGTH
-          Quantity<LengthUnit> length1 = new Quantity<>(1.0, LengthUnit.FEET);
-          Quantity<LengthUnit> length2 = new Quantity<>(12.0, LengthUnit.INCH);
+		SpringApplication.run(
+				MeasurementApplication.class,
+				args
+		);
 
-          boolean isEqualLength = length1.equals(length2);
-          Quantity<LengthUnit> sumLength = length1.add(length2);
-          Quantity<LengthUnit> convertedLength = length1.convertTo(LengthUnit.INCH);
+		Repository repository =
+				new DatabaseRepository(null);
+		var service =
+				new ServiceImpl(repository);
 
-          // WEIGHT
-          Quantity<WeightUnit> weight1 = new Quantity<>(1.0, WeightUnit.KILOGRAM);
-          Quantity<WeightUnit> weight2 = new Quantity<>(1000.0, WeightUnit.GRAM);
+		var controller =
+				new Controller(service);
 
-          boolean isEqualWeight = weight1.equals(weight2);
-          Quantity<WeightUnit> sumWeight = weight1.add(weight2);
-          Quantity<WeightUnit> convertedWeight = weight1.convertTo(WeightUnit.GRAM);
+		// Example
+		var result = controller.performAdd(
+				new com.quantity.measurement.dto.QuantityDTO(
+						1.0,
+						"FEET",
+						"LENGTH"
+				),
+				new com.quantity.measurement.dto.QuantityDTO(
+						12.0,
+						"INCH",
+						"LENGTH"
+				),
+				"FEET"
+		);
 
-    }
+		LOGGER.info(
+				"Result Value: {}",
+				result.getValue()
+		);
+	}
 }

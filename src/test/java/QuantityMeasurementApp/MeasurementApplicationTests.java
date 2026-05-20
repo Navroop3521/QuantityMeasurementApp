@@ -1,19 +1,14 @@
 package QuantityMeasurementApp;
-
 import com.quantity.measurement.enumImpl.LengthUnit;
 import com.quantity.measurement.enumImpl.WeightUnit;
 import  com.quantity.measurement.enums.*;
 import com.quantity.measurement.model.*;
-//import com.quantity.measurement.model;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class MeasurementApplicationTests {
-	
 	private static final double EPSILON = 1e-6;
 	 private static final double DELTA = 1e-3;
-	
 	//UC4
-
 		// 1
 		@Test
 		void testEquality_YardToYard_SameValue() {
@@ -22,7 +17,6 @@ class MeasurementApplicationTests {
 					new QuantityLength(1.0, LengthUnit.YARDS)
 			);
 		}
-
 		// 2
 		@Test
 		void testEquality_YardToYard_DifferentValue() {
@@ -31,7 +25,6 @@ class MeasurementApplicationTests {
 					new QuantityLength(2.0, LengthUnit.YARDS)
 			);
 		}
-
 		// 3
 		@Test
 		void testEquality_YardToFeet_EquivalentValue() {
@@ -40,7 +33,6 @@ class MeasurementApplicationTests {
 					new QuantityLength(3.0, LengthUnit.FEET)
 			);
 		}
-
 		// 4
 		@Test
 		void testEquality_FeetToYard_EquivalentValue() {

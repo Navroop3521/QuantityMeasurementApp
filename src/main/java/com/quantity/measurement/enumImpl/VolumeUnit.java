@@ -1,6 +1,8 @@
 package com.quantity.measurement.enumImpl;
 
 import com.quantity.measurement.enums.IMeasurable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum VolumeUnit implements IMeasurable {
 
@@ -8,6 +10,8 @@ public enum VolumeUnit implements IMeasurable {
     MILLILITRE(0.001),
     GALLON(3.78541);
 
+    // UC16: Logger added
+    private static final Logger LOGGER = LoggerFactory.getLogger(VolumeUnit.class);
     private final double conversionFactor;
 
     VolumeUnit(double conversionFactor) {
@@ -21,12 +25,16 @@ public enum VolumeUnit implements IMeasurable {
 
     @Override
     public double convertToBaseUnit(double value) {
-        return value * conversionFactor;
+        double result = value * conversionFactor;
+        LOGGER.debug("Volume: Converting {} {} to {} LITRE (Base Unit)", value, this.name(), result);
+        return result;
     }
 
     @Override
     public double convertFromBaseUnit(double baseValue) {
-        return baseValue / conversionFactor;
+        double result = baseValue / conversionFactor;
+        LOGGER.debug("Volume: Converting {} LITRE back to {} {}", baseValue, result, this.name());
+        return result;
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.quantity.measurement.enumImpl;
 
 import com.quantity.measurement.enums.IMeasurable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum LengthUnit implements IMeasurable {
 
@@ -9,6 +11,8 @@ public enum LengthUnit implements IMeasurable {
     YARDS(3.0),
     CENTIMETERS(1.0 / 30.48);
 
+    // UC16: Logger added for tracking conversion factors
+    private static final Logger LOGGER = LoggerFactory.getLogger(LengthUnit.class);
     private final double toFeetFactor;
 
     LengthUnit(double toFeetFactor) {
@@ -22,24 +26,26 @@ public enum LengthUnit implements IMeasurable {
 
     @Override
     public double convertToBaseUnit(double value) {
-        validate(value);
-        return value * toFeetFactor;
+        if (!Double.isFinite(value)) {
+            LOGGER.error("Conversion failed: Value is not finite: {}", value);
+            throw new IllegalArgumentException("Invalid value");
+        }
+        double result = value * toFeetFactor;
+        LOGGER.debug("Converted {} {} to {} BaseUnits (FEET)", value, this.name(), result);
+        return result;
     }
 
     @Override
     public double convertFromBaseUnit(double value) {
-        validate(value);
-        return value / toFeetFactor;
-    }
-    private void validate(double value) {
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
+        if (!Double.isFinite(value)) {
+            LOGGER.error("Conversion failed: Value is not finite: {}", value);
             throw new IllegalArgumentException("Invalid value");
         }
+        return value / toFeetFactor;
     }
 
-	@Override
-	public String getUnitName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public String getUnitName() {
+        return this.name();
+    }
 }

@@ -1,8 +1,13 @@
 package com.quantity.measurement.model;
 
 import com.quantity.measurement.enumImpl.LengthUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QuantityLength {
+
+    // UC16: Logger added for monitoring length-specific operations
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuantityLength.class);
 
     private final Quantity<LengthUnit> quantity;
 
@@ -19,13 +24,15 @@ public class QuantityLength {
     }
 
     public QuantityLength add(QuantityLength other, LengthUnit targetUnit) {
-
         if (other == null || targetUnit == null) {
+            LOGGER.error("Addition failed: Missing operand or target unit");
             throw new IllegalArgumentException("Other quantity and target unit must not be null");
         }
 
-        Quantity<LengthUnit> result =this.quantity.add(other.quantity, targetUnit);
+        LOGGER.info("Length Addition: Adding {} and {} to target unit {}", 
+                    this.quantity, other.quantity, targetUnit);
 
+        Quantity<LengthUnit> result = this.quantity.add(other.quantity, targetUnit);
         return new QuantityLength(result.getValue(), result.getUnit());
     }
 
@@ -36,7 +43,8 @@ public class QuantityLength {
 
     // CONVERT
     public QuantityLength toConvert(LengthUnit targetUnit) {
-        Quantity<LengthUnit> result =this.quantity.convertTo(targetUnit);
+        LOGGER.debug("Length Conversion: Converting {} to {}", this.quantity, targetUnit);
+        Quantity<LengthUnit> result = this.quantity.convertTo(targetUnit);
         return new QuantityLength(result.getValue(), result.getUnit());
     }
 
@@ -46,11 +54,21 @@ public class QuantityLength {
         if (this == obj) return true;
         if (!(obj instanceof QuantityLength)) return false;
         QuantityLength other = (QuantityLength) obj;
-        return this.quantity.equals(other.quantity);
+        
+        boolean isEqual = this.quantity.equals(other.quantity);
+        if (isEqual) {
+            LOGGER.debug("Equality Check: {} matches {}", this.quantity, other.quantity);
+        }
+        return isEqual;
     }
 
     @Override
     public int hashCode() {
         return quantity.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return quantity.toString();
     }
 }

@@ -1,7 +1,8 @@
 package com.quantity.measurement.enumImpl;
 
 import com.quantity.measurement.enums.IMeasurable;
-import com.quantity.measurement.enums.IMeasurable.SupportsArithmetic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Function;
 
@@ -25,12 +26,12 @@ public enum TemperatureUnit implements IMeasurable {
             celsius -> celsius + 273.15
     );
 
+    // UC16: Logger initialization
+    private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureUnit.class);
+
     private final double conversionFactor;
     private final Function<Double, Double> toCelsius;
     private final Function<Double, Double> fromCelsius;
-
-    private static final SupportsArithmetic supportsArithmetic =
-            () -> false;
 
     TemperatureUnit(
             double conversionFactor,
@@ -54,18 +55,18 @@ public enum TemperatureUnit implements IMeasurable {
 
     @Override
     public double convertToBaseUnit(double value) {
-
         validate(value);
-
-        return toCelsius.apply(value);
+        double result = toCelsius.apply(value);
+        LOGGER.debug("Temperature: Converted {} {} to {} CELSIUS", value, this.name(), result);
+        return result;
     }
 
     @Override
     public double convertFromBaseUnit(double value) {
-
         validate(value);
-
-        return fromCelsius.apply(value);
+        double result = fromCelsius.apply(value);
+        LOGGER.debug("Temperature: Converted {} CELSIUS back to {} {}", value, result, this.name());
+        return result;
     }
 
     @Override
@@ -75,7 +76,7 @@ public enum TemperatureUnit implements IMeasurable {
 
     @Override
     public void validateOperationSupport(String operation) {
-
+        LOGGER.warn("Temperature: Arithmetic operation '{}' attempted but not supported", operation);
         throw new UnsupportedOperationException(
                 "Temperature does not support " +
                         operation +
@@ -84,8 +85,8 @@ public enum TemperatureUnit implements IMeasurable {
     }
 
     private void validate(double value) {
-
         if (!Double.isFinite(value)) {
+            LOGGER.error("Temperature Validation Error: Value is not finite ({})", value);
             throw new IllegalArgumentException("Invalid value");
         }
     }

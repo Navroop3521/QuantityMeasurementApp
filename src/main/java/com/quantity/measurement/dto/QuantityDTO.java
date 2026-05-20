@@ -1,8 +1,11 @@
 package com.quantity.measurement.dto;
 
-import com.quantity.measurement.enumImpl.WeightUnit;
+import java.io.Serializable;
 
-public class QuantityDTO {
+// UC16: QuantityDTO maintained for cross-package visibility
+public class QuantityDTO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private double value;
     private String unit;
@@ -10,20 +13,19 @@ public class QuantityDTO {
     private boolean error;
     private String errorMessage;
 
+    // Constructor for success
     public QuantityDTO(double value, String unit, String measurementType) {
         this.value = value;
         this.unit = unit;
         this.measurementType = measurementType;
+        this.error = false;
     }
 
+    // Constructor for errors
     public QuantityDTO(boolean error, String errorMessage) {
         this.error = error;
         this.errorMessage = errorMessage;
     }
-
-    // public QuantityDTO(double d, WeightUnit kilogram, double e, WeightUnit gram)
-    // {
-    // }
 
     public double getValue() {
         return value;
@@ -43,5 +45,13 @@ public class QuantityDTO {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+    
+    @Override
+    public String toString() {
+        if (error) {
+            return "QuantityDTO [error=" + error + ", message=" + errorMessage + "]";
+        }
+        return "QuantityDTO [value=" + value + ", unit=" + unit + ", type=" + measurementType + "]";
     }
 }
