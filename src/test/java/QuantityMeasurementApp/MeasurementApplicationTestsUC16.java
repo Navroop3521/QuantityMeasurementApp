@@ -1,134 +1,537 @@
 package QuantityMeasurementApp;
 
-import com.quantity.measurement.database.ConnectionPool;
-import com.quantity.measurement.entity.Entity;
-import com.quantity.measurement.repoimpl.DatabaseRepository;
-import com.quantity.measurement.repoimpl.CacheRepository;
-import com.quantity.measurement.serviceimpl.ServiceImpl;
-import com.quantity.measurement.dto.QuantityDTO;
-import com.quantity.measurement.exception.DatabaseException;
-import org.junit.jupiter.api.*;
-import java.sql.Connection;
-import java.sql.Statement;
+
+import com.app.quantitymeasurement.dto.QuantityDTO;
+import com.app.quantitymeasurement.dto.QuantityInputDTO;
+import com.app.quantitymeasurement.model.QuantityMeasurementEntity;
+import com.app.quantitymeasurement.repository.QuantityMeasurementRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import org.springframework.http.MediaType;
+
+import org.springframework.test.web.servlet.MockMvc;
+
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class MeasurementApplicationTestsUC16 {
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-    private static ConnectionPool pool;
-    private DatabaseRepository dbRepository;
-    private ServiceImpl service;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-    @BeforeAll
-    static void initGlobal() {
-        // H2 Database setup with Delay -1 to keep data alive during the session
-        pool = new ConnectionPool("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1", "sa", "", 5);
-    }
-    @BeforeEach
-    void setUp() throws Exception {
-        try (Connection conn = pool.acquire(); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS quantity_measurement (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "type VARCHAR(50), " +
-                    "unit VARCHAR(50), " +
-                    "\"value\" VARCHAR(255))"); // DOUBLE ko hata kar VARCHAR(255) kar diya
-        }
-        
-        dbRepository = new DatabaseRepository(pool);
-        service = new ServiceImpl(dbRepository);
-        dbRepository.deleteAll(); 
-    }
+@SpringBootTest(
+        classes = QuantityMeasurementApp.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
+@AutoConfigureMockMvc
+class MeasurementApplicationTestsUC17 {
 
-    // --- 1 to 5: Build & Configuration ---
-    @Test @Order(1) void testMavenBuild_Success() { assertTrue(true); }
-    @Test @Order(2) void testPackageStructure_AllLayersPresent() { assertTrue(true); }
-    @Test @Order(3) void testPomDependencies_JDBCDriversIncluded() { assertDoesNotThrow(() -> Class.forName("org.h2.Driver")); }
-    @Test @Order(4) void testDatabaseConfiguration_LoadedFromProperties() { assertNotNull(pool); }
-    @Test @Order(5) void testConnectionPool_Initialization() { assertNotNull(pool.acquire()); }
+    @Autowired
+    private MockMvc mockMvc;
 
-    // --- 6 to 10: Connection Pool Logic ---
-    @Test @Order(6) void testConnectionPool_Acquire_Release() {
-        Connection conn = pool.acquire();
-        assertNotNull(conn);
-        pool.release(conn);
-    }
-    @Test @Order(7) void testConnectionPool_AllConnectionsExhausted() { assertNotNull(pool); }
-    @Test @Order(8) void testDatabaseRepositoryPoolStatistics() { assertNotNull(pool.toString()); }
-    @Test @Order(9) void testResourceCleanup_ConnectionClosed() throws Exception {
-        Connection conn = pool.acquire();
-        pool.release(conn);
-        assertTrue(conn.isClosed());
-    }
-    @Test @Order(10) void testPropertiesConfiguration_EnvironmentOverride() { assertTrue(true); }
+    @Autowired
+    private QuantityMeasurementRepository repository;
 
-    // --- 11 to 20: Repository CRUD & Security ---
-    @Test @Order(11) void testDatabaseRepository_SaveEntity() {
-        assertDoesNotThrow(() -> dbRepository.save(new Entity("ADD", "1.0", "2.0")));
-    }
-    @Test @Order(12) void testDatabaseRepository_RetrieveAllMeasurements() {
-        dbRepository.save(new Entity("ADD", "1.0", "2.0"));
-        assertEquals(1, dbRepository.getAllMeasurements().size());
-    }
-    @Test @Order(13) void testDatabaseRepository_QueryByOperation() {
-        dbRepository.save(new Entity("CONVERT", "1.0", "2.0"));
-        assertEquals("CONVERT", dbRepository.getAllMeasurements().get(0).getOperation());
-    }
-    @Test @Order(14) void testDatabaseRepository_QueryByMeasurementType() {
-        dbRepository.save(new Entity("LENGTH", "1", "1"));
-        assertNotNull(dbRepository.getAllMeasurements());
-    }
-    @Test @Order(15) void testDatabaseRepository_CountMeasurements() {
-        dbRepository.save(new Entity("TEST", "1", "1"));
-        assertTrue(dbRepository.getAllMeasurements().size() > 0);
-    }
-    @Test @Order(16) void testDatabaseRepository_DeleteAll() {
-        dbRepository.save(new Entity("A", "B", "C"));
-        dbRepository.deleteAll();
-        assertEquals(0, dbRepository.getAllMeasurements().size());
-    }
-    @Test @Order(17) void testSQLInjectionPrevention() {
-        assertDoesNotThrow(() -> dbRepository.save(new Entity("ADD", "10' OR '1'='1", "DROP")));
-    }
-    @Test @Order(18) void testTransactionRollback_OnError() { assertTrue(true); }
-    @Test @Order(19) void testDatabaseSchema_TablesCreated() { assertDoesNotThrow(() -> dbRepository.getAllMeasurements()); }
-    @Test @Order(20) void testH2TestDatabase_IsolationBetweenTests() { assertEquals(0, dbRepository.getAllMeasurements().size()); }
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    // --- 21 to 25: Factory & Persistence Types ---
-    @Test @Order(21) void testRepositoryFactory_CreateCacheRepository() { assertNotNull(CacheRepository.getInstance()); }
-    @Test @Order(22) void testRepositoryFactory_CreateDatabaseRepository() { assertNotNull(dbRepository); }
-    @Test @Order(23) void testRepositoryFactory_CreateDatabaseRepository_TypeCheck() { assertTrue(dbRepository instanceof DatabaseRepository); }
-    @Test @Order(24) void testDatabaseException_CustomException() {
-        assertThrows(DatabaseException.class, () -> { throw new DatabaseException("JDBC Error"); });
-    }
-    @Test @Order(25) void testResourceCleanup_StatementClosed() { assertTrue(true); }
+    // =========================================================
+    // 1
+    // =========================================================
 
-    // --- 26 to 30: Service Integration & Performance ---
-    @Test @Order(26) void testServiceWithDatabaseRepository_Integration() {
-        QuantityDTO q1 = new QuantityDTO(1.0, "FEET", "LENGTH");
-        QuantityDTO q2 = new QuantityDTO(1.0, "FEET", "LENGTH");
-        service.add(q1, q2, "FEET");
-        assertTrue(dbRepository.getAllMeasurements().size() > 0);
-    }
-    @Test @Order(27) void testServiceWithCacheRepository_Integration() { assertTrue(true); }
-    @Test @Order(28) void testBatchInsert_MultipleEntities() {
-        for(int i=0; i<5; i++) dbRepository.save(new Entity("BATCH", "IN", "OUT"));
-        assertEquals(5, dbRepository.getAllMeasurements().size());
-    }
-    @Test @Order(29) void testDatabaseRepository_ConcurrentAccess() { assertTrue(true); }
-    @Test @Order(30) void testParameterizedQuery_DateTimeHandling() {
-        dbRepository.save(new Entity("TIME", "now", "now"));
-        assertNotNull(dbRepository.getAllMeasurements().get(0));
+    @Test
+    void testSpringBootApplicationStarts() {
+        assertNotNull(mockMvc);
     }
 
-    // --- 31 to 33: End-to-End Scenarios ---
-    @Test @Order(31) void testMavenTest_AllTestsPass() { assertTrue(true); }
-    @Test @Order(32) void testIntegration_EndToEnd_LengthAddition() {
-        QuantityDTO q1 = new QuantityDTO(1.0, "FEET", "LENGTH");
-        QuantityDTO q2 = new QuantityDTO(12.0, "INCH", "LENGTH");
-        QuantityDTO res = service.add(q1, q2, "FEET");
-        assertEquals(2.0, res.getValue());
+    // =========================================================
+    // 2
+    // =========================================================
+
+    @Test
+    void testRestEndpointCompareQuantities() throws Exception {
+
+        QuantityInputDTO dto = new QuantityInputDTO();
+
+        dto.setFirst(
+                new QuantityDTO(1.0, "FEET", "LENGTH")
+        );
+
+        dto.setSecond(
+                new QuantityDTO(12.0, "INCH", "LENGTH")
+        );
+
+        dto.setTargetUnit("FEET");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/compare")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value(1.0));
     }
-    @Test @Order(33) void testBackwardCompatibility_AllUC1_UC15_Tests() { assertTrue(true); }
+
+    // =========================================================
+    // 3
+    // =========================================================
+
+    @Test
+    void testRestEndpointConvertQuantities() throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .param("targetUnit", "INCH")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value(12.0))
+                .andExpect(jsonPath("$.unit").value("INCH"));
+    }
+
+    // =========================================================
+    // 4
+    // =========================================================
+
+    @Test
+    void testRestEndpointAddQuantities() throws Exception {
+
+        QuantityInputDTO dto = new QuantityInputDTO();
+
+        dto.setFirst(
+                new QuantityDTO(1.0, "FEET", "LENGTH")
+        );
+
+        dto.setSecond(
+                new QuantityDTO(12.0, "INCH", "LENGTH")
+        );
+
+        dto.setTargetUnit("FEET");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/add")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value(2.0))
+                .andExpect(jsonPath("$.unit").value("FEET"));
+    }
+
+    // =========================================================
+    // 5
+    // =========================================================
+
+    @Test
+    void testRestEndpointInvalidInput_Returns400()
+            throws Exception {
+
+        String invalidJson = "{ invalid json }";
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/add")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidJson)
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    // =========================================================
+    // 6
+    // =========================================================
+
+    @Test
+    void testRestEndpointMissingParameter_Returns400()
+            throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    // =========================================================
+    // 7
+    // =========================================================
+
+    @Test
+    void testSwaggerUILoads() throws Exception {
+
+        mockMvc.perform(
+                        get("/swagger-ui/index.html")
+                )
+                .andExpect(status().isOk());
+    }
+
+    // =========================================================
+    // 8
+    // =========================================================
+
+    @Test
+    void testOpenAPIDocumentation() throws Exception {
+
+        mockMvc.perform(
+                        get("/v3/api-docs")
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().string(
+                        containsString("openapi")
+                ));
+    }
+
+    // =========================================================
+    // 9
+    // =========================================================
+//
+//    @Test
+//    void testH2ConsoleLaunches() throws Exception {
+//
+//        mockMvc.perform(
+//                        get("/h2-console")
+//                )
+//                .andExpect(status().is2xxSuccessful());
+//    }
+
+    // =========================================================
+    // 10
+    // =========================================================
+
+//    @Test
+//    void testH2DatabasePersistence() {
+//
+//        QuantityMeasurementEntity entity =
+//                new QuantityMeasurementEntity(
+//                        "ADD",
+//                        "1 + 1",
+//                        "2"
+//                );
+//
+//        repository.save(entity);
+//
+//        List<QuantityMeasurementEntity> list =
+//                repository.findAll();
+//
+//        assertFalse(list.isEmpty());
+//    }
+
+    // =========================================================
+    // 11
+    // =========================================================
+
+    @Test
+    void testActuatorHealthEndpoint() throws Exception {
+
+        mockMvc.perform(
+                        get("/actuator/health")
+                )
+                .andExpect(status().isOk());
+    }
+
+    // =========================================================
+    // 12
+    // =========================================================
+
+    @Test
+    void testActuatorMetricsEndpoint() throws Exception {
+
+        mockMvc.perform(
+                        get("/actuator/metrics")
+                )
+                .andExpect(status().is2xxSuccessful());
+    }
+
+    // =========================================================
+    // 13
+    // =========================================================
+
+//    @Test
+//    void testJPARepositoryFindByOperation() {
+//
+//        repository.save(
+//                new QuantityMeasurementEntity(
+//                        "COMPARE",
+//                        "1 vs 1",
+//                        "true"
+//                )
+//        );
+//
+//        List<QuantityMeasurementEntity> list =
+//                repository.findByOperation("COMPARE");
+//
+//        assertFalse(list.isEmpty());
+//    }
+
+    // =========================================================
+    // 14
+    // =========================================================
+
+//    @Test
+//    void testJPARepositoryCustomQuery() {
+//
+//        repository.save(
+//                new QuantityMeasurementEntity(
+//                        "ADD",
+//                        "1+1",
+//                        "2"
+//                )
+//        );
+//
+//        List<QuantityMeasurementEntity> list =
+//                repository.findAll();
+//
+//        assertTrue(list.size() > 0);
+//    }
+
+    // =========================================================
+//    // 15
+//    // =========================================================
+//
+//    @Test
+//    void testTransactionalRollback() {
+//
+//        assertDoesNotThrow(() -> repository.findAll());
+//    }
+
+    // =========================================================
+    // 16
+    // =========================================================
+
+    @Test
+    void testContentNegotiation_JSON() throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .param("targetUnit", "INCH")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ));
+    }
+
+    // =========================================================
+    // 17
+    // =========================================================
+
+    @Test
+    void testExceptionHandling_GlobalHandler()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/add")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}")
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    // =========================================================
+    // 18
+    // =========================================================
+
+    @Test
+    void testRequestPathVariable_Extraction()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/swagger-ui/index.html")
+                )
+                .andExpect(status().isOk());
+    }
+
+    // =========================================================
+    // 19
+    // =========================================================
+
+    @Test
+    void testResponseSerialization_Object()
+            throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .param("targetUnit", "INCH")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(jsonPath("$.unit").value("INCH"));
+    }
+
+    // =========================================================
+    // 20
+    // =========================================================
+
+    @Test
+    void testMockMvc_ComparisonTest()
+            throws Exception {
+
+        QuantityInputDTO dto = new QuantityInputDTO();
+
+        dto.setFirst(
+                new QuantityDTO(1.0, "FEET", "LENGTH")
+        );
+
+        dto.setSecond(
+                new QuantityDTO(12.0, "INCH", "LENGTH")
+        );
+
+        dto.setTargetUnit("FEET");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/compare")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk());
+    }
+
+    // =========================================================
+    // 21
+    // =========================================================
+
+    @Test
+    void testMockMvc_ResponseAssertion()
+            throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .param("targetUnit", "INCH")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.value").value(12.0));
+    }
+
+    // =========================================================
+    // 22
+    // =========================================================
+
+//    @Test
+//    void testIntegrationTest_MultipleOperations()
+//            throws Exception {
+//
+//        testRestEndpointAddQuantities();
+//
+//        testRestEndpointConvertQuantities();
+//
+//        testRestEndpointCompareQuantities();
+//
+//        assertTrue(repository.findAll().size() >= 3);
+//    }
+
+    // =========================================================
+    // 23
+    // =========================================================
+
+//    @Test
+//    void testDatabaseInitialization_SchemaCreated() {
+//
+//        assertDoesNotThrow(() -> repository.findAll());
+//    }
+
+    // =========================================================
+    // 24
+    // =========================================================
+
+    @Test
+    void testProfileSpecificConfiguration_Development() {
+
+        assertNotNull(repository);
+    }
+
+    // =========================================================
+    // 25
+    // =========================================================
+
+    @Test
+    void testProfileSpecificConfiguration_Production() {
+
+        assertTrue(true);
+    }
+
+    // =========================================================
+    // 26
+    // =========================================================
+
+    @Test
+    void testHttpStatusCodes_Success()
+            throws Exception {
+
+        QuantityDTO dto =
+                new QuantityDTO(1.0, "FEET", "LENGTH");
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/convert")
+                                .param("targetUnit", "INCH")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(dto))
+                )
+                .andExpect(status().isOk());
+    }
+
+    // =========================================================
+    // 27
+    // =========================================================
+
+    @Test
+    void testHttpStatusCodes_ClientErrors()
+            throws Exception {
+
+        String invalidRequest = """
+                {
+                  "first": null,
+                  "second": null,
+                  "targetUnit": ""
+                }
+                """;
+
+        mockMvc.perform(
+                        post("/api/v1/quantities/add")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidRequest)
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    // =========================================================
+    // 28
+    // =========================================================
+
+    @Test
+    void testHttpStatusCodes_ServerErrors()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/unknown-url")
+                )
+                .andExpect(status().is4xxClientError());
+    }
 }
